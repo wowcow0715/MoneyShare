@@ -149,6 +149,35 @@
           flex-direction: row;
         }
       }
+
+      .deletable-list li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+      }
+
+      .delete-btn {
+        background-color: #ff5252;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 5px 10px;
+        cursor: pointer;
+        font-size: 14px;
+        min-width: auto !important;
+        margin-left: 10px;
+      }
+
+      .delete-btn:hover {
+        background-color: #ff1744;
+      }
+
+      .list-item-content {
+        flex-grow: 1;
+        margin-right: 10px;
+      }
     </style>
   </head>
   <body>
@@ -166,7 +195,7 @@
     <!-- 在新增參與者區塊後面加入參與者列表顯示 -->
     <div class="expense-form">
       <h2>目前參與者</h2>
-      <ul id="participantList"></ul>
+      <ul id="participantList" class="deletable-list"></ul>
       <button
         onclick="resetParticipants()"
         style="background-color: #ffebee; color: #d32f2f"
@@ -190,7 +219,7 @@
     <!-- 支出列表 -->
     <div class="expense-list">
       <h2>支出列表</h2>
-      <ul id="expenseList"></ul>
+      <ul id="expenseList" class="deletable-list"></ul>
       <button
         onclick="resetExpenses()"
         style="background-color: #ffebee; color: #d32f2f"
@@ -285,9 +314,22 @@
         list.innerHTML = "";
         expenses.forEach((expense, index) => {
           const li = document.createElement("li");
-          li.textContent = `${expense.payer} 支付了 ${expense.amount} 元 (${
-            expense.description
-          }) - 參與者: ${expense.participants.join(", ")}`;
+
+          const content = document.createElement("span");
+          content.className = "list-item-content";
+          content.textContent = `${expense.payer} 支付了 ${
+            expense.amount
+          } 元 (${expense.description}) - 參與者: ${expense.participants.join(
+            ", "
+          )}`;
+          li.appendChild(content);
+
+          const deleteBtn = document.createElement("button");
+          deleteBtn.className = "delete-btn";
+          deleteBtn.textContent = "刪除";
+          deleteBtn.onclick = () => deleteExpense(index);
+          li.appendChild(deleteBtn);
+
           list.appendChild(li);
         });
       }
@@ -295,7 +337,7 @@
       function calculate() {
         if (participants.length === 0) return;
 
-        // 計算每個人的總支出和應付金額
+        // 計算每個人的總支出和��付金額
         const totalPaid = {};
         const shouldPay = {};
         participants.forEach((name) => {
@@ -390,11 +432,81 @@
       function updateParticipantList() {
         const list = document.getElementById("participantList");
         list.innerHTML = "";
-        participants.forEach((name) => {
+        participants.forEach((name, index) => {
           const li = document.createElement("li");
-          li.textContent = name;
+
+          const content = document.createElement("span");
+          content.className = "list-item-content";
+          content.textContent = name;
+          li.appendChild(content);
+
+          const deleteBtn = document.createElement("button");
+          deleteBtn.className = "delete-btn";
+          deleteBtn.textContent = "刪除";
+          deleteBtn.onclick = () => deleteParticipant(index);
+          li.appendChild(deleteBtn);
+
           list.appendChild(li);
         });
+      }
+
+      // 修改刪除參與者的函數
+      function deleteParticipant(index) {
+        const participantToDelete = participants[index];
+
+        // 檢查是否有相關支出
+        const hasExpenses = expenses.some(
+          (expense) =>
+            expense.payer === participantToDelete ||
+            expense.participants.includes(participantToDelete)
+        );
+
+        if (hasExpenses) {
+          if (
+            confirm(
+              `${participantToDelete} 有相關的支出記錄，系統將：\n1. 刪除此人支付的支出\n2. 將此人從其他支出的參與者中移除\n\n確定要刪除嗎？`
+            )
+          ) {
+            // 處理支出記錄
+            expenses = expenses
+              .map((expense) => {
+                // 如果是該參與者支付的支出，直接移除
+                if (expense.payer === participantToDelete) {
+                  return null;
+                }
+                // 如果該參與者只是參與者之一，將其從參與者列表中移除
+                if (expense.participants.includes(participantToDelete)) {
+                  return {
+                    ...expense,
+                    participants: expense.participants.filter(
+                      (p) => p !== participantToDelete
+                    ),
+                  };
+                }
+                return expense;
+              })
+              .filter(
+                (expense) =>
+                  // 移除 null 的支出記錄和沒有參與者的支出
+                  expense !== null && expense.participants.length > 0
+              );
+
+            // 移除參與者
+            participants.splice(index, 1);
+
+            // 更新顯示
+            updateParticipantList();
+            updatePayerSelect();
+            updateExpenseList();
+            calculate();
+          }
+        } else {
+          // 如果沒有相關支出，直接刪除參與者
+          participants.splice(index, 1);
+          updateParticipantList();
+          updatePayerSelect();
+          calculate();
+        }
       }
 
       // 新增重置參與者的函數
@@ -661,6 +773,15 @@
             console.error("複製失敗：", err);
             alert("複製失敗，請手動複製：\n\n" + exportText);
           });
+      }
+
+      // 新增刪除支出的函數
+      function deleteExpense(index) {
+        if (confirm("確定要刪除這筆支出嗎？")) {
+          expenses.splice(index, 1);
+          updateExpenseList();
+          calculate();
+        }
       }
 
       // 在頁面載入時檢查 URL 參數
