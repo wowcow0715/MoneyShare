@@ -16,6 +16,7 @@
     />
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vuetify@3.4.0/dist/vuetify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pako@2.0.4/dist/pako.min.js"></script>
 
     <style>
       [v-cloak] {
@@ -345,6 +346,40 @@
     </script>
 
     <script>
+      // Base62 編碼函數
+      function base62Encode(buffer) {
+        const chars =
+          "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        let result = "";
+        let num = BigInt(
+          "0x" +
+            Array.from(buffer)
+              .map((b) => b.toString(16).padStart(2, "0"))
+              .join("")
+        );
+        while (num > 0) {
+          result = chars[num % 62n] + result;
+          num = num / 62n;
+        }
+        return result;
+      }
+
+      // Base62 解碼函數
+      function base62Decode(str) {
+        const chars =
+          "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        let num = BigInt(0);
+        for (let i = 0; i < str.length; i++) {
+          num = num * 62n + BigInt(chars.indexOf(str[i]));
+        }
+        const hex = num.toString(16);
+        const buffer = new Uint8Array(hex.length / 2);
+        for (let i = 0; i < buffer.length; i++) {
+          buffer[i] = parseInt(hex.substr(i * 2, 2), 16);
+        }
+        return buffer;
+      }
+
       // 參與者管理組件
       const ParticipantManager = {
         template: "#participant-manager-template",
@@ -573,6 +608,76 @@
           };
         },
         methods: {
+          encodeData() {
+            const data = {
+              participants: this.participants,
+              expenses: this.expenses,
+            };
+            // 1. JSON 字串化
+            const jsonString = JSON.stringify(data);
+            // 2. Base64 編碼
+            const base64String = btoa(jsonString);
+            // 3. 使用 pako 壓縮
+            const compressed = pako.deflate(base64String);
+            // 4. 使用 Base62 編碼
+            return base62Encode(compressed);
+          },
+          decodeData(encoded) {
+            // 1. Base62 解碼
+            const compressed = base62Decode(encoded);
+            // 2. 解壓縮 pako
+            const base64String = pako.inflate(compressed, { to: "string" });
+            // 3. Base64 解碼
+            const jsonString = atob(base64String);
+            // 4. 解析 JSON
+            return JSON.parse(jsonString);
+          },
+          async shareDetails() {
+            const encoded = this.encodeData();
+            const shareUrl = `${window.location.origin}${window.location.pathname}#${encoded}`;
+
+            const shareText =
+              "聚會費用分攤明細\n" +
+              "=================\n\n" +
+              `總金額：${this.expenses.reduce(
+                (sum, exp) => sum + exp.amount,
+                0
+              )} 元\n` +
+              `參人數：${this.participants.length} 人\n\n` +
+              "點擊連結查看詳細資訊：";
+
+            if (navigator.share) {
+              try {
+                await navigator.share({
+                  title: "聚會費用分攤明細",
+                  text: shareText,
+                  url: shareUrl,
+                });
+              } catch (err) {
+                if (err.name !== "AbortError") {
+                  this.fallbackShare(shareUrl);
+                }
+              }
+            } else {
+              this.fallbackShare(shareUrl);
+            }
+          },
+          fallbackShare(shareUrl) {
+            navigator.clipboard
+              .writeText(shareUrl)
+              .then(() =>
+                this.showNotification("分享連結已複製到剪貼簿！", "success")
+              )
+              .catch(() => {
+                const tempInput = document.createElement("input");
+                tempInput.value = shareUrl;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand("copy");
+                document.body.removeChild(tempInput);
+                this.showNotification("分享連結已複製到剪貼簿！", "success");
+              });
+          },
           addParticipant(name) {
             this.participants.push(name);
             this.showNotification(`已新增參與者：${name}`);
@@ -721,61 +826,8 @@
               },
             });
           },
-          async shareDetails() {
-            const encoded = this.encodeData();
-            const shareUrl = `${window.location.origin}${window.location.pathname}#${encoded}`;
-
-            const shareText =
-              "聚會費用分攤明細\n" +
-              "=================\n\n" +
-              `總金額：${this.expenses.reduce(
-                (sum, exp) => sum + exp.amount,
-                0
-              )} 元\n` +
-              `參人數：${this.participants.length} 人\n\n` +
-              "點擊連結查看詳細資訊：";
-
-            if (navigator.share) {
-              try {
-                await navigator.share({
-                  title: "聚會費用分攤明細",
-                  text: shareText,
-                  url: shareUrl,
-                });
-              } catch (err) {
-                if (err.name !== "AbortError") {
-                  this.fallbackShare(shareUrl);
-                }
-              }
-            } else {
-              this.fallbackShare(shareUrl);
-            }
-          },
-          fallbackShare(shareUrl) {
-            navigator.clipboard
-              .writeText(shareUrl)
-              .then(() =>
-                this.showNotification("分享連結已複製到剪貼簿！", "success")
-              )
-              .catch(() => {
-                const tempInput = document.createElement("input");
-                tempInput.value = shareUrl;
-                document.body.appendChild(tempInput);
-                tempInput.select();
-                document.execCommand("copy");
-                document.body.removeChild(tempInput);
-                this.showNotification("分享連結已複製到剪貼簿！", "success");
-              });
-          },
-          encodeData() {
-            const data = {
-              participants: this.participants,
-              expenses: this.expenses,
-            };
-            return btoa(encodeURIComponent(JSON.stringify(data)));
-          },
           exportDetails() {
-            let exportText = "聚會費用分攤明細\n";
+            let exportText = "會���用分攤明細\n";
             exportText += "=================\n\n";
 
             const shareUrl = `${window.location.origin}${
@@ -857,7 +909,7 @@
           const hash = window.location.hash.slice(1);
           if (hash) {
             try {
-              const data = JSON.parse(decodeURIComponent(atob(hash)));
+              const data = this.decodeData(hash);
               if (data && data.participants && data.expenses) {
                 this.participants = data.participants;
                 this.expenses = data.expenses;
