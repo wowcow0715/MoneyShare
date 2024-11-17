@@ -287,7 +287,7 @@
           const li = document.createElement("li");
           li.textContent = `${expense.payer} 支付了 ${expense.amount} 元 (${
             expense.description
-          }) - 參與者: ${expense.participants.join(", ")}`;
+          }) - 參��者: ${expense.participants.join(", ")}`;
           list.appendChild(li);
         });
       }
@@ -420,21 +420,65 @@
         }
       }
 
-      // 新增資料編碼和解碼功能
-      function encodeData() {
-        const data = {
-          participants: participants,
-          expenses: expenses,
-        };
-        return btoa(encodeURIComponent(JSON.stringify(data)));
+      // 新增從 URL 載入資料的功能
+      function loadFromUrl() {
+        const hash = window.location.hash.slice(1); // 移除 # 符號
+        if (hash) {
+          try {
+            const data = decodeData(hash);
+            if (data && data.participants && data.expenses) {
+              participants = data.participants;
+              expenses = data.expenses;
+
+              // 更新所有顯示
+              updateParticipantList();
+              updatePayerSelect();
+              updateExpenseList();
+              calculate();
+            } else {
+              console.error("載入的資料格式不正確");
+            }
+          } catch (error) {
+            console.error("載入資料時發生錯誤：", error);
+          }
+        }
       }
 
+      // 修改 decodeData 函數，加入更多錯誤處理
       function decodeData(encoded) {
         try {
-          const data = JSON.parse(decodeURIComponent(atob(encoded)));
+          // 處理 URL 編碼問題
+          const decoded = decodeURIComponent(atob(encoded));
+          const data = JSON.parse(decoded);
+
+          // 驗證資料結構
+          if (!data.participants || !Array.isArray(data.participants)) {
+            throw new Error("參與者資料格式不正確");
+          }
+          if (!data.expenses || !Array.isArray(data.expenses)) {
+            throw new Error("支出資料格式不正確");
+          }
+
           return data;
         } catch (e) {
           console.error("解碼失敗：", e);
+          alert("解析分享連結失敗，請確認連結是否完整。");
+          return null;
+        }
+      }
+
+      // 修改 encodeData 函數，確保資料格式正確
+      function encodeData() {
+        try {
+          const data = {
+            participants: participants,
+            expenses: expenses,
+          };
+          const jsonString = JSON.stringify(data);
+          return btoa(encodeURIComponent(jsonString));
+        } catch (e) {
+          console.error("編碼失敗：", e);
+          alert("產生分享連結時發生錯誤。");
           return null;
         }
       }
