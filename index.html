@@ -203,6 +203,9 @@
     <div class="result">
       <h2>計算結果</h2>
       <div id="result"></div>
+      <button onclick="exportDetails()" style="background-color: #4caf50">
+        匯出明細到剪貼簿
+      </button>
     </div>
 
     <script>
@@ -410,6 +413,125 @@
           updateExpenseList();
           calculate();
         }
+      }
+
+      function exportDetails() {
+        let exportText = "聚會費用分攤明細\n";
+        exportText += "=================\n\n";
+
+        // 新增參與者清單
+        exportText += "參與者：\n";
+        participants.forEach((name) => {
+          exportText += `- ${name}\n`;
+        });
+        exportText += "\n";
+
+        // 新增支出明細
+        exportText += "支出明細：\n";
+        expenses.forEach((expense, index) => {
+          exportText += `${index + 1}. ${expense.description}\n`;
+          exportText += `   付款人：${expense.payer}\n`;
+          exportText += `   金額：${expense.amount} 元\n`;
+          exportText += `   參與者：${expense.participants.join(", ")}\n`;
+          exportText += "\n";
+        });
+
+        // 計算總金額和每人支付情況
+        const totalPaid = {};
+        const shouldPay = {};
+        participants.forEach((name) => {
+          totalPaid[name] = 0;
+          shouldPay[name] = 0;
+        });
+
+        expenses.forEach((expense) => {
+          totalPaid[expense.payer] += expense.amount;
+          const perPerson = expense.amount / expense.participants.length;
+          expense.participants.forEach((participant) => {
+            shouldPay[participant] += perPerson;
+          });
+        });
+
+        const totalAmount = Object.values(totalPaid).reduce((a, b) => a + b, 0);
+
+        // 新增總結算明細
+        exportText += "結算明細：\n";
+        exportText += `總金額：${totalAmount} 元\n\n`;
+
+        participants.forEach((person) => {
+          const paid = totalPaid[person] || 0;
+          const should = shouldPay[person] || 0;
+          exportText += `${person}:\n`;
+          exportText += `- 已支付：${paid.toFixed(2)} 元\n`;
+          exportText += `- 應支付：${should.toFixed(2)} 元\n\n`;
+        });
+
+        // 新增轉帳建議
+        exportText += "轉帳建議（已互相抵銷）：\n";
+        let hasTransfers = false;
+
+        // 建立債務矩陣
+        const debtMatrix = {};
+        participants.forEach((payer) => {
+          debtMatrix[payer] = {};
+          participants.forEach((receiver) => {
+            debtMatrix[payer][receiver] = 0;
+          });
+        });
+
+        // 計算債務關係
+        expenses.forEach((expense) => {
+          const perPerson = expense.amount / expense.participants.length;
+          expense.participants.forEach((participant) => {
+            if (participant !== expense.payer) {
+              debtMatrix[participant][expense.payer] += perPerson;
+            }
+          });
+        });
+
+        // 抵銷雙向債務
+        participants.forEach((person1) => {
+          participants.forEach((person2) => {
+            if (person1 !== person2) {
+              const debt1to2 = debtMatrix[person1][person2];
+              const debt2to1 = debtMatrix[person2][person1];
+
+              if (debt1to2 > 0 && debt2to1 > 0) {
+                const offsetAmount = Math.min(debt1to2, debt2to1);
+                debtMatrix[person1][person2] -= offsetAmount;
+                debtMatrix[person2][person1] -= offsetAmount;
+              }
+            }
+          });
+        });
+
+        // 加入轉帳建議
+        participants.forEach((payer) => {
+          participants.forEach((receiver) => {
+            const amount = debtMatrix[payer][receiver];
+            if (amount > 0.01) {
+              hasTransfers = true;
+              exportText += `${payer} 應該支付給 ${receiver}: ${amount.toFixed(
+                2
+              )} 元\n`;
+            }
+          });
+        });
+
+        if (!hasTransfers) {
+          exportText += "所有費用已平衡，無需轉帳。\n";
+        }
+
+        // 複製到剪貼簿
+        navigator.clipboard
+          .writeText(exportText)
+          .then(() => {
+            alert("明細已複製到剪貼簿！");
+          })
+          .catch((err) => {
+            console.error("複製失敗：", err);
+            alert("複製失敗，請手動複製：\n\n" + exportText);
+          });
       }
     </script>
   </body>
