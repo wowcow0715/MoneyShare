@@ -122,7 +122,7 @@
             @click="$emit('reset-participants')"
             :disabled="!participants.length"
           >
-            重置所有參與者
+            沒人來
           </v-btn>
         </v-card-title>
         <v-card-text>
@@ -164,7 +164,7 @@
           <v-alert
             v-if="!participants.length"
             type="info"
-            text="尚未新增參與者"
+            text="我還不知道誰有來,請填"
           ></v-alert>
         </v-card-text>
       </v-card>
@@ -195,7 +195,7 @@
             <v-col cols="12" sm="4">
               <v-text-field
                 v-model="newExpense.description"
-                label="你幹啥去了花那麼多錢"
+                label="花去哪了"
                 hide-details
               ></v-text-field>
             </v-col>
@@ -252,7 +252,7 @@
             >
               <v-list-item-title>{{ expense.description }}
                 <div class="mt-2">
-                <span class="text-subtitle-2">參與者：</span>
+                <span class="text-subtitle-2">誰有來：</span>
                 <v-row>
 
                     <v-chip
@@ -338,7 +338,7 @@
           <v-alert
             v-else
             type="info"
-            text="請新增參與者和支出以查看計算結果"
+            text="請填入誰有來和誰花的錢以查看計算結果"
           ></v-alert>
         </v-card-text>
       </v-card>
@@ -715,7 +715,7 @@
 
             if (hasExpenses) {
               this.showConfirmDialog({
-                title: "確認刪除參與者",
+                title: "他沒來嗎?",
                 text: `${participantToDelete} 有相關的支出記錄，系統將：\n1. 刪除人支付的支出\n2. 將此人從其他支出的參與者中移除\n\n確定要刪除嗎？`,
                 callback: () => {
                   // 找出並通知被刪除的支出
@@ -739,7 +739,7 @@
                   );
                   if (modifiedExpenses.length > 0) {
                     this.showNotification(
-                      `已將 ${participantToDelete} 從以下支出的參與者中移除：${modifiedExpenses
+                      `已將 ${participantToDelete} 從以下支出中移除：${modifiedExpenses
                         .map((e) => e.description)
                         .join(", ")}`,
                       "warning"
@@ -776,12 +776,12 @@
               });
             } else {
               this.showConfirmDialog({
-                title: "確認刪除參與者",
+                title: "他沒來嗎?",
                 text: `確定要刪除 ${participantToDelete} 嗎？`,
                 callback: () => {
                   this.participants.splice(index, 1);
                   this.showNotification(
-                    `已刪除參與者：${participantToDelete}（無相關支出）`,
+                    `已確定他沒來：${participantToDelete}（無相關支出）`,
                     "warning"
                   );
                 },
@@ -791,7 +791,7 @@
           resetParticipants() {
             this.showConfirmDialog({
               title: "確認重置",
-              text: "確定要清空所有參與者嗎？這個動作會同時清空所有支出紀錄。",
+              text: "你確定大家都沒來?要清掉了喔",
               callback: () => {
                 const participantCount = this.participants.length;
                 const expenseCount = this.expenses.length;
@@ -803,7 +803,7 @@
                 this.participants = [];
                 this.expenses = [];
                 this.showNotification(
-                  `已重置所有資料（參與者：${participantCount} 人，支出：${expenseCount} 筆，總金額：${totalAmount} 元）`,
+                  `已重置所有資料（總人數：${participantCount} 人，支出：${expenseCount} 筆，總金額：${totalAmount} 元）`,
                   "warning"
                 );
               },
@@ -814,7 +814,7 @@
             this.showNotification(
               `已新增支出：${expense.description} (${
                 expense.amount
-              } 元)\n參與者：${expense.participants.join(", ")}`
+              } 元)\n誰有來：${expense.participants.join(", ")}`
             );
           },
           deleteExpense(index) {
