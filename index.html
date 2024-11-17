@@ -636,14 +636,14 @@
               })),
             };
             const jsonString = JSON.stringify(data);
-            const base64String = btoa(jsonString);
-            const compressed = pako.deflate(base64String);
+            const utf8Bytes = new TextEncoder().encode(jsonString);
+            const compressed = pako.deflate(utf8Bytes);
             return base62Encode(compressed);
           },
           decodeData(encoded) {
             const compressed = base62Decode(encoded);
-            const base64String = pako.inflate(compressed, { to: "string" });
-            const jsonString = atob(base64String);
+            const utf8Bytes = pako.inflate(compressed);
+            const jsonString = new TextDecoder().decode(utf8Bytes);
             const data = JSON.parse(jsonString);
             return {
               participants: data.p,
