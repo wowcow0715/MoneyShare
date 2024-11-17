@@ -203,9 +203,14 @@
     <div class="result">
       <h2>計算結果</h2>
       <div id="result"></div>
-      <button onclick="exportDetails()" style="background-color: #4caf50">
-        匯出明細到剪貼簿
-      </button>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap">
+        <button onclick="exportDetails()" style="background-color: #4caf50">
+          匯出明細到剪貼簿
+        </button>
+        <button onclick="shareDetails()" style="background-color: #2196f3">
+          分享結果
+        </button>
+      </div>
     </div>
 
     <script>
@@ -415,9 +420,89 @@
         }
       }
 
+      // 新增資料編碼和解碼功能
+      function encodeData() {
+        const data = {
+          participants: participants,
+          expenses: expenses,
+        };
+        return btoa(encodeURIComponent(JSON.stringify(data)));
+      }
+
+      function decodeData(encoded) {
+        try {
+          const data = JSON.parse(decodeURIComponent(atob(encoded)));
+          return data;
+        } catch (e) {
+          console.error("解碼失敗：", e);
+          return null;
+        }
+      }
+
+      // 新增 shareDetails 函數
+      async function shareDetails() {
+        const encoded = encodeData();
+        const shareUrl = `${window.location.origin}${window.location.pathname}#${encoded}`;
+
+        // 準備分享文字
+        const shareText =
+          "聚會費用分攤明細\n" +
+          "=================\n\n" +
+          `總金額：${Object.values(expenses).reduce(
+            (sum, exp) => sum + exp.amount,
+            0
+          )} 元\n` +
+          `參與人數：${participants.length} 人\n\n` +
+          "點擊連結查看詳細資訊：";
+
+        // 檢查是否支援 Share API
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: "聚會費用分攤明細",
+              text: shareText,
+              url: shareUrl,
+            });
+          } catch (err) {
+            if (err.name !== "AbortError") {
+              fallbackShare(shareUrl);
+            }
+          }
+        } else {
+          fallbackShare(shareUrl);
+        }
+      }
+
+      // 新增備用分享方法
+      function fallbackShare(shareUrl) {
+        // 建立臨時輸入框
+        const tempInput = document.createElement("input");
+        tempInput.value = shareUrl;
+        document.body.appendChild(tempInput);
+
+        // 選取並複製
+        tempInput.select();
+        document.execCommand("copy");
+        document.body.removeChild(tempInput);
+
+        alert("分享連結已複製到剪貼簿！\n您可以直接分享給其他人。");
+      }
+
+      // 修改 generateShareLink 函數名稱為 getShareUrl（作為輔助函數）
+      function getShareUrl() {
+        const encoded = encodeData();
+        return `${window.location.origin}${window.location.pathname}#${encoded}`;
+      }
+
+      // 修改 exportDetails 函數中的分享連結部分
       function exportDetails() {
         let exportText = "聚會費用分攤明細\n";
         exportText += "=================\n\n";
+
+        // 加入分享連結
+        const shareUrl = getShareUrl();
+        exportText += "分享連結：\n";
+        exportText += shareUrl + "\n\n";
 
         // 新增參與者清單
         exportText += "參與者：\n";
@@ -533,6 +618,11 @@
             alert("複製失敗，請手動複製：\n\n" + exportText);
           });
       }
+
+      // 在頁面載入時檢查 URL 參數
+      window.addEventListener("load", loadFromUrl);
+      // 監聽 hash 變更事件
+      window.addEventListener("hashchange", loadFromUrl);
     </script>
   </body>
 </html>
