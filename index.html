@@ -4,808 +4,885 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>聚會費用分攤計算器</title>
+
+    <!-- Vuetify 相關資源 -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/vuetify@3.4.0/dist/vuetify.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/css/materialdesignicons.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@3.4.0/dist/vuetify.min.js"></script>
+
     <style>
-      * {
-        box-sizing: border-box;
-      }
-
-      body {
-        font-family: Arial, sans-serif;
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 15px;
-        background-color: #f5f5f5;
-      }
-
-      h1 {
-        font-size: 1.8rem;
-        text-align: center;
-        color: #2c3e50;
-      }
-
-      h2 {
-        font-size: 1.4rem;
-        color: #34495e;
-      }
-
-      .expense-form,
-      .expense-list,
-      .result {
-        background-color: white;
-        padding: 15px;
-        margin-bottom: 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      }
-
-      /* 輸入框和選擇框樣式 */
-      input,
-      select {
-        width: 100%;
-        padding: 10px;
-        margin: 5px 0;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        font-size: 16px; /* 手機上更容易點擊 */
-      }
-
-      /* 按鈕樣式 */
-      button {
-        width: 100%;
-        padding: 12px;
-        margin: 5px 0;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        background-color: #3498db;
-        color: white;
-        font-size: 16px;
-      }
-
-      button:hover {
-        opacity: 0.9;
-      }
-
-      button[onclick*="reset"] {
-        background-color: #e74c3c;
-      }
-
-      /* 參與者勾選框容器 */
-      #participantCheckboxes {
-        margin: 10px 0;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-      }
-
-      /* 參與者勾選框標籤 */
-      #participantCheckboxes label {
-        display: block;
-        padding: 8px 0;
-        font-size: 16px;
-      }
-
-      #participantCheckboxes input[type="checkbox"] {
-        width: auto;
-        margin-right: 8px;
-        transform: scale(1.2); /* 讓勾選框更大，更容易點擊 */
-      }
-
-      /* 列表樣式 */
-      ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-
-      li {
-        padding: 10px;
-        border-bottom: 1px solid #eee;
-        word-break: break-all;
-      }
-
-      /* 結果區塊樣式 */
-      .result {
-        background-color: #f8f9fa;
-      }
-
-      .result p {
-        margin: 8px 0;
-        line-height: 1.5;
-      }
-
-      /* 響應式設計 */
-      @media (min-width: 768px) {
-        .form-row {
-          display: flex;
-          gap: 10px;
-        }
-
-        .form-row input,
-        .form-row select {
-          flex: 1;
-        }
-
-        button {
-          width: auto;
-          min-width: 120px;
-        }
-
-        #participantCheckboxes label {
-          display: inline-block;
-          margin-right: 15px;
-        }
-      }
-
-      /* 新增支出表單的響應式布局 */
-      .expense-inputs {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
-
-      @media (min-width: 768px) {
-        .expense-inputs {
-          flex-direction: row;
-        }
-      }
-
-      .deletable-list li {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px;
-        border-bottom: 1px solid #eee;
-      }
-
-      .delete-btn {
-        background-color: #ff5252;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 5px 10px;
-        cursor: pointer;
-        font-size: 14px;
-        min-width: auto !important;
-        margin-left: 10px;
-      }
-
-      .delete-btn:hover {
-        background-color: #ff1744;
-      }
-
-      .list-item-content {
-        flex-grow: 1;
-        margin-right: 10px;
+      [v-cloak] {
+        display: none;
       }
     </style>
   </head>
   <body>
-    <h1>聚會費用分攤計算器</h1>
+    <div id="app" v-cloak>
+      <v-app>
+        <v-main>
+          <v-container>
+            <v-row justify="center">
+              <v-col cols="12" md="8">
+                <v-card class="mb-6">
+                  <v-card-title class="text-center text-h4 py-4">
+                    聚會費用分攤計算器
+                  </v-card-title>
+                </v-card>
 
-    <!-- 新增參與者 -->
-    <div class="expense-form">
-      <h2>新增參與者</h2>
-      <div class="form-row">
-        <input type="text" id="newParticipant" placeholder="輸入參與者姓名" />
-        <button onclick="addParticipant()">新增參與者</button>
-      </div>
+                <!-- 參與者管理組件 -->
+                <participant-manager
+                  :participants="participants"
+                  @add-participant="addParticipant"
+                  @delete-participant="deleteParticipant"
+                  @reset-participants="resetParticipants"
+                ></participant-manager>
+
+                <!-- 支出管理組件 -->
+                <expense-manager
+                  :participants="participants"
+                  :expenses="expenses"
+                  @add-expense="addExpense"
+                  @delete-expense="deleteExpense"
+                  @update-expense="updateExpense"
+                  @reset-expenses="resetExpenses"
+                  @notify-update="showNotification"
+                ></expense-manager>
+
+                <!-- 結果顯示組件 -->
+                <result-display
+                  :participants="participants"
+                  :expenses="expenses"
+                  @share="shareDetails"
+                  @export="exportDetails"
+                ></result-display>
+              </v-col>
+            </v-row>
+          </v-container>
+        </v-main>
+
+        <!-- 確認對話框 -->
+        <v-dialog v-model="dialog.show" max-width="500">
+          <v-card>
+            <v-card-title>{{ dialog.title }}</v-card-title>
+            <v-card-text class="white-space-pre-line"
+              >{{ dialog.text }}</v-card-text
+            >
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn color="grey" variant="text" @click="dialog.show = false">
+                {{ dialog.cancelText }}
+              </v-btn>
+              <v-btn
+                :color="dialog.confirmColor"
+                variant="text"
+                @click="handleDialogConfirm"
+              >
+                {{ dialog.confirmText }}
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+
+        <!-- 通知組件 -->
+        <v-snackbar
+          v-model="snackbar.show"
+          :color="snackbar.color"
+          :timeout="2000"
+          location="top"
+        >
+          {{ snackbar.text }}
+        </v-snackbar>
+      </v-app>
     </div>
 
-    <!-- 在新增參與者區塊後面加入參與者列表顯示 -->
-    <div class="expense-form">
-      <h2>目前參與者</h2>
-      <ul id="participantList" class="deletable-list"></ul>
-      <button
-        onclick="resetParticipants()"
-        style="background-color: #ffebee; color: #d32f2f"
-      >
-        重置所有參與者
-      </button>
-    </div>
+    <!-- 參與者管理組件模板 -->
+    <script type="text/x-template" id="participant-manager-template">
+      <v-card class="mb-6">
+        <v-card-title>新增參與者</v-card-title>
+        <v-card-text>
+          <v-form @submit.prevent="addNewParticipant">
+            <v-row>
+              <v-col cols="12" sm="8">
+                <v-text-field
+                  v-model="newParticipantName"
+                  label="輸入參與者姓名"
+                  @keyup.enter="addNewParticipant"
+                  hide-details
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="4">
+                <v-btn
+                  color="primary"
+                  block
+                  @click="addNewParticipant"
+                  :disabled="!newParticipantName"
+                >
+                  新增參與者
+                </v-btn>
+              </v-col>
+            </v-row>
+          </v-form>
+        </v-card-text>
+      </v-card>
 
-    <!-- 新增支出 -->
-    <div class="expense-form">
-      <h2>新增支出</h2>
-      <div class="expense-inputs">
-        <select id="payer"></select>
-        <input type="number" id="amount" placeholder="金額" />
-        <input type="text" id="description" placeholder="支出描述" />
-      </div>
-      <div id="participantCheckboxes"></div>
-      <button onclick="addExpense()">新增支出</button>
-    </div>
+      <v-card class="mb-6">
+        <v-card-title class="d-flex justify-space-between align-center">
+          目前參與者
+          <v-btn
+            color="error"
+            variant="text"
+            @click="$emit('reset-participants')"
+            :disabled="!participants.length"
+          >
+            重置所有參與者
+          </v-btn>
+        </v-card-title>
+        <v-card-text>
+          <v-list v-if="participants.length">
+            <v-list-item
+              v-for="(participant, index) in participants"
+              :key="participant"
+            >
+              <v-list-item-title>{{ participant }}</v-list-item-title>
+              <template #append>
+                <v-btn
+                  color="error"
+                  icon="mdi-delete"
+                  variant="text"
+                  @click="$emit('delete-participant', index)"
+                ></v-btn>
+              </template>
+            </v-list-item>
+          </v-list>
+          <v-alert
+            v-else
+            type="info"
+            text="尚未新增參與者"
+          ></v-alert>
+        </v-card-text>
+      </v-card>
+    </script>
 
-    <!-- 支出列表 -->
-    <div class="expense-list">
-      <h2>支出列表</h2>
-      <ul id="expenseList" class="deletable-list"></ul>
-      <button
-        onclick="resetExpenses()"
-        style="background-color: #ffebee; color: #d32f2f"
-      >
-        重置所有支出
-      </button>
-    </div>
+    <!-- 支出管理組件模板 -->
+    <script type="text/x-template" id="expense-manager-template">
+      <v-card class="mb-6">
+        <v-card-title>新增支出</v-card-title>
+        <v-card-text>
+          <v-row>
+            <v-col cols="12" sm="4">
+              <v-select
+                v-model="newExpense.payer"
+                :items="participants"
+                label="付款人"
+                hide-details
+              ></v-select>
+            </v-col>
+            <v-col cols="12" sm="4">
+              <v-text-field
+                v-model.number="newExpense.amount"
+                type="number"
+                label="金額"
+                hide-details
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" sm="4">
+              <v-text-field
+                v-model="newExpense.description"
+                label="支出描述"
+                hide-details
+              ></v-text-field>
+            </v-col>
+          </v-row>
 
-    <!-- 計算結果 -->
-    <div class="result">
-      <h2>計算結果</h2>
-      <div id="result"></div>
-      <div style="display: flex; gap: 10px; flex-wrap: wrap">
-        <button onclick="exportDetails()" style="background-color: #4caf50">
-          匯出明細到剪貼簿
-        </button>
-        <button onclick="shareDetails()" style="background-color: #2196f3">
-          分享結果
-        </button>
-      </div>
-    </div>
+          <v-card-subtitle>參與者</v-card-subtitle>
+          <v-row>
+            <v-col cols="12">
+              <v-checkbox
+                v-for="participant in participants"
+                :key="participant"
+                v-model="newExpense.participants"
+                :label="participant"
+                :value="participant"
+                hide-details
+                class="ma-2"
+              ></v-checkbox>
+            </v-col>
+          </v-row>
+
+          <v-row class="mt-4">
+            <v-col cols="12">
+              <v-btn
+                color="primary"
+                block
+                @click="addNewExpense"
+                :disabled="!canAddExpense"
+              >
+                新增支出
+              </v-btn>
+            </v-col>
+          </v-row>
+        </v-card-text>
+      </v-card>
+
+      <v-card class="mb-6">
+        <v-card-title class="d-flex justify-space-between align-center">
+          支出列表
+          <v-btn
+            color="error"
+            variant="text"
+            @click="$emit('reset-expenses')"
+            :disabled="!expenses.length"
+          >
+            重置所有支出
+          </v-btn>
+        </v-card-title>
+        <v-card-text>
+          <v-list v-if="expenses.length">
+            <v-list-item
+              v-for="(expense, index) in expenses"
+              :key="index"
+            >
+              <v-list-item-title>{{ expense.description }}</v-list-item-title>
+              <v-list-item-subtitle>
+                <div class="d-flex align-center">
+                  <span>{{ expense.payer }} 支付了</span>
+                  <v-text-field
+                    v-model.number="expense.amount"
+                    type="number"
+                    density="compact"
+                    class="mx-2"
+                    style="width: 100px"
+                    hide-details
+                    @change="handleAmountChange(index, expense)"
+                  ></v-text-field>
+                  <span>元</span>
+                </div>
+                <div class="mt-2">
+                  <span class="text-subtitle-2">參與者：</span>
+                  <v-checkbox
+                    v-for="participant in participants"
+                    :key="participant"
+                    v-model="expense.participants"
+                    :label="participant"
+                    :value="participant"
+                    density="compact"
+                    hide-details
+                    class="ma-1 d-inline-block"
+                    @change="handleParticipantChange(index, expense)"
+                  >
+                    <template v-slot:label>
+                      <v-icon v-if="participant === expense.payer" color="red" class="mr-1">
+                        mdi-crown
+                      </v-icon>
+                      {{ participant }}
+                    </template>
+                  </v-checkbox>
+                </div>
+              </v-list-item-subtitle>
+              <template #append>
+                <v-btn
+                  color="error"
+                  icon="mdi-delete"
+                  variant="text"
+                  @click="$emit('delete-expense', index)"
+                ></v-btn>
+              </template>
+            </v-list-item>
+          </v-list>
+          <v-alert
+            v-else
+            type="info"
+            text="尚未新增支出"
+          ></v-alert>
+        </v-card-text>
+      </v-card>
+    </script>
+
+    <!-- 結果顯示組件模板 -->
+    <script type="text/x-template" id="result-display-template">
+      <v-card>
+        <v-card-title>計算結果</v-card-title>
+        <v-card-text>
+          <div v-if="participants.length && expenses.length">
+            <div v-html="calculationResult"></div>
+            <v-row class="mt-4">
+              <v-col cols="12" sm="6">
+                <v-btn
+                  color="success"
+                  block
+                  @click="$emit('export')"
+                  prepend-icon="mdi-content-copy"
+                >
+                  匯出明細到剪貼簿
+                </v-btn>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-btn
+                  color="primary"
+                  block
+                  @click="$emit('share')"
+                  prepend-icon="mdi-share-variant"
+                >
+                  分享結果
+                </v-btn>
+              </v-col>
+            </v-row>
+          </div>
+          <v-alert
+            v-else
+            type="info"
+            text="請新增參與者和支出以查看計算結果"
+          ></v-alert>
+        </v-card-text>
+      </v-card>
+    </script>
 
     <script>
-      let participants = [];
-      let expenses = [];
-
-      function addParticipant() {
-        const name = document.getElementById("newParticipant").value.trim();
-        if (name && !participants.includes(name)) {
-          participants.push(name);
-          updatePayerSelect();
-          updateParticipantList();
-          document.getElementById("newParticipant").value = "";
-          calculate();
-        }
-      }
-
-      function updatePayerSelect() {
-        const select = document.getElementById("payer");
-        const checkboxDiv = document.getElementById("participantCheckboxes");
-
-        select.innerHTML = "";
-        checkboxDiv.innerHTML = "<p>參與者：</p>";
-
-        participants.forEach((name) => {
-          // 更新付款人選單
-          const option = document.createElement("option");
-          option.value = name;
-          option.textContent = name;
-          select.appendChild(option);
-
-          // 新增參與者勾選框
-          const label = document.createElement("label");
-          const checkbox = document.createElement("input");
-          checkbox.type = "checkbox";
-          checkbox.value = name;
-          checkbox.id = `participant-${name}`;
-          checkbox.checked = true;
-          label.appendChild(checkbox);
-          label.appendChild(document.createTextNode(` ${name}`));
-          checkboxDiv.appendChild(label);
-        });
-      }
-
-      function addExpense() {
-        const payer = document.getElementById("payer").value;
-        const amount = parseFloat(document.getElementById("amount").value);
-        const description = document.getElementById("description").value;
-
-        // 獲取被選中的參與者
-        const selectedParticipants = participants.filter(
-          (name) => document.getElementById(`participant-${name}`).checked
-        );
-
-        if (payer && amount && description && selectedParticipants.length > 0) {
-          expenses.push({
-            payer,
-            amount,
-            description,
-            participants: selectedParticipants,
-          });
-          updateExpenseList();
-          calculate();
-
-          document.getElementById("amount").value = "";
-          document.getElementById("description").value = "";
-        }
-      }
-
-      function updateExpenseList() {
-        const list = document.getElementById("expenseList");
-        list.innerHTML = "";
-        expenses.forEach((expense, index) => {
-          const li = document.createElement("li");
-
-          const content = document.createElement("span");
-          content.className = "list-item-content";
-          content.textContent = `${expense.payer} 支付了 ${
-            expense.amount
-          } 元 (${expense.description}) - 參與者: ${expense.participants.join(
-            ", "
-          )}`;
-          li.appendChild(content);
-
-          const deleteBtn = document.createElement("button");
-          deleteBtn.className = "delete-btn";
-          deleteBtn.textContent = "刪除";
-          deleteBtn.onclick = () => deleteExpense(index);
-          li.appendChild(deleteBtn);
-
-          list.appendChild(li);
-        });
-      }
-
-      function calculate() {
-        if (participants.length === 0) return;
-
-        // 計算每個人的總支出和應付金額
-        const totalPaid = {};
-        const shouldPay = {};
-        participants.forEach((name) => {
-          totalPaid[name] = 0;
-          shouldPay[name] = 0;
-        });
-
-        // 計算每筆支出的分攤
-        expenses.forEach((expense) => {
-          totalPaid[expense.payer] += expense.amount;
-          const perPerson = expense.amount / expense.participants.length;
-          expense.participants.forEach((participant) => {
-            shouldPay[participant] += perPerson;
-          });
-        });
-
-        // 顯示結果
-        const result = document.getElementById("result");
-        const totalAmount = Object.values(totalPaid).reduce((a, b) => a + b, 0);
-        result.innerHTML = `<p>總金額：${totalAmount} 元</p><br>`;
-
-        // 建立債務矩陣（誰欠誰多少錢）
-        const debtMatrix = {};
-        participants.forEach((payer) => {
-          debtMatrix[payer] = {};
-          participants.forEach((receiver) => {
-            debtMatrix[payer][receiver] = 0;
-          });
-        });
-
-        // 計算每筆支出的債務關係
-        expenses.forEach((expense) => {
-          const perPerson = expense.amount / expense.participants.length;
-          expense.participants.forEach((participant) => {
-            if (participant !== expense.payer) {
-              debtMatrix[participant][expense.payer] += perPerson;
-            }
-          });
-        });
-
-        // 抵銷雙向債務
-        participants.forEach((person1) => {
-          participants.forEach((person2) => {
-            if (person1 !== person2) {
-              const debt1to2 = debtMatrix[person1][person2];
-              const debt2to1 = debtMatrix[person2][person1];
-
-              if (debt1to2 > 0 && debt2to1 > 0) {
-                // 抵銷較小的金額
-                const offsetAmount = Math.min(debt1to2, debt2to1);
-                debtMatrix[person1][person2] -= offsetAmount;
-                debtMatrix[person2][person1] -= offsetAmount;
-              }
-            }
-          });
-        });
-
-        // 顯示每個人的支付和收款情況
-        participants.forEach((person) => {
-          const paid = totalPaid[person] || 0;
-          const should = shouldPay[person] || 0;
-
-          result.innerHTML += `<p>${person}:</p>`;
-          result.innerHTML += `<p>- 已支付：${paid.toFixed(2)} 元</p>`;
-          result.innerHTML += `<p>- 應支付：${should.toFixed(2)} 元</p>`;
-          result.innerHTML += "<br>";
-        });
-
-        // 顯示最終轉帳建議（已抵銷後的結果）
-        result.innerHTML += `<h3>轉帳建議（已互相抵銷）：</h3>`;
-        let hasTransfers = false;
-
-        participants.forEach((payer) => {
-          participants.forEach((receiver) => {
-            const amount = debtMatrix[payer][receiver];
-            if (amount > 0.01) {
-              // 忽略小於1分的金額
-              hasTransfers = true;
-              result.innerHTML += `<p>${payer} 應該支付給 ${receiver}: ${amount.toFixed(
-                2
-              )} 元</p>`;
-            }
-          });
-        });
-
-        if (!hasTransfers) {
-          result.innerHTML += "<p>所有費用已平衡，無需轉帳。</p>";
-        }
-      }
-
-      // 新增更新參與者列表的函數
-      function updateParticipantList() {
-        const list = document.getElementById("participantList");
-        list.innerHTML = "";
-        participants.forEach((name, index) => {
-          const li = document.createElement("li");
-
-          const content = document.createElement("span");
-          content.className = "list-item-content";
-          content.textContent = name;
-          li.appendChild(content);
-
-          const deleteBtn = document.createElement("button");
-          deleteBtn.className = "delete-btn";
-          deleteBtn.textContent = "刪除";
-          deleteBtn.onclick = () => deleteParticipant(index);
-          li.appendChild(deleteBtn);
-
-          list.appendChild(li);
-        });
-      }
-
-      // 修改刪除參與者的函數
-      function deleteParticipant(index) {
-        const participantToDelete = participants[index];
-
-        // 檢查是否有相關支出
-        const hasExpenses = expenses.some(
-          (expense) =>
-            expense.payer === participantToDelete ||
-            expense.participants.includes(participantToDelete)
-        );
-
-        if (hasExpenses) {
-          if (
-            confirm(
-              `${participantToDelete} 有相關的支出記錄，系統將：\n1. 刪除此人支付的支出\n2. 將此人從其他支出的參與者中移除\n\n確定要刪除嗎？`
-            )
-          ) {
-            // 處理支出記錄
-            expenses = expenses
-              .map((expense) => {
-                // 如果是該參與者支付的支出，直接移除
-                if (expense.payer === participantToDelete) {
-                  return null;
-                }
-                // 如果該參與者只是參與者之一，將其從參與者列表中移除
-                if (expense.participants.includes(participantToDelete)) {
-                  return {
-                    ...expense,
-                    participants: expense.participants.filter(
-                      (p) => p !== participantToDelete
-                    ),
-                  };
-                }
-                return expense;
-              })
-              .filter(
-                (expense) =>
-                  // 移除 null 的支出記錄和沒有參與者的支出
-                  expense !== null && expense.participants.length > 0
-              );
-
-            // 移除參與者
-            participants.splice(index, 1);
-
-            // 更新顯示
-            updateParticipantList();
-            updatePayerSelect();
-            updateExpenseList();
-            calculate();
-          }
-        } else {
-          // 如果沒有相關支出，直接刪除參與者
-          participants.splice(index, 1);
-          updateParticipantList();
-          updatePayerSelect();
-          calculate();
-        }
-      }
-
-      // 修改重置參與者的函數
-      function resetParticipants() {
-        if (
-          confirm("確定要清空所有參與者嗎？這個動作會同時清空所有支出紀錄。")
-        ) {
-          participants = [];
-          expenses = []; // 清空支出，因為支出需要參與者資訊
-
-          // 清空所有顯示
-          updateParticipantList();
-          updatePayerSelect();
-          updateExpenseList();
-
-          // 清空結果顯示
-          const result = document.getElementById("result");
-          result.innerHTML = "";
-
-          // 清空輸入欄位
-          document.getElementById("newParticipant").value = "";
-          document.getElementById("amount").value = "";
-          document.getElementById("description").value = "";
-
-          // 更新計算結果
-          calculate();
-        }
-      }
-
-      // 修改重置支���的函數
-      function resetExpenses() {
-        if (confirm("確定要清空所有支出紀錄嗎？")) {
-          expenses = [];
-
-          // 清空支出列表
-          updateExpenseList();
-
-          // 清空結果顯示
-          const result = document.getElementById("result");
-          result.innerHTML = "";
-
-          // 清空支出相關的輸入欄位
-          document.getElementById("amount").value = "";
-          document.getElementById("description").value = "";
-
-          // 更新計算結果
-          calculate();
-        }
-      }
-
-      // 新增從 URL 載入資料的功能
-      function loadFromUrl() {
-        const hash = window.location.hash.slice(1); // 移除 # 符號
-        if (hash) {
-          try {
-            const data = decodeData(hash);
-            if (data && data.participants && data.expenses) {
-              participants = data.participants;
-              expenses = data.expenses;
-
-              // 更新所有顯示
-              updateParticipantList();
-              updatePayerSelect();
-              updateExpenseList();
-              calculate();
-            } else {
-              console.error("載入的資料格式不正確");
-            }
-          } catch (error) {
-            console.error("載入資料時發生錯誤：", error);
-          }
-        }
-      }
-
-      // 修改 decodeData 函數，加入更多錯誤處理
-      function decodeData(encoded) {
-        try {
-          // 處理 URL 編碼問題
-          const decoded = decodeURIComponent(atob(encoded));
-          const data = JSON.parse(decoded);
-
-          // 驗證資料結構
-          if (!data.participants || !Array.isArray(data.participants)) {
-            throw new Error("參與者資料格式不正確");
-          }
-          if (!data.expenses || !Array.isArray(data.expenses)) {
-            throw new Error("支出資料格式不正確");
-          }
-
-          return data;
-        } catch (e) {
-          console.error("解碼失敗：", e);
-          alert("解析分享連結失敗，請確認連結是否完整。");
-          return null;
-        }
-      }
-
-      // 修改 encodeData 函數，確保資料格式正確
-      function encodeData() {
-        try {
-          const data = {
-            participants: participants,
-            expenses: expenses,
+      // 參與者管理組件
+      const ParticipantManager = {
+        template: "#participant-manager-template",
+        props: {
+          participants: Array,
+        },
+        data() {
+          return {
+            newParticipantName: "",
           };
-          const jsonString = JSON.stringify(data);
-          return btoa(encodeURIComponent(jsonString));
-        } catch (e) {
-          console.error("編碼失敗：", e);
-          alert("產生分享連結時發生錯誤。");
-          return null;
-        }
-      }
+        },
+        methods: {
+          addNewParticipant() {
+            const name = this.newParticipantName.trim();
+            if (name && !this.participants.includes(name)) {
+              this.$emit("add-participant", name);
+              this.newParticipantName = "";
+            }
+          },
+        },
+      };
 
-      // 新增 shareDetails 函數
-      async function shareDetails() {
-        const encoded = encodeData();
-        const shareUrl = `${window.location.origin}${window.location.pathname}#${encoded}`;
+      // 支出管理組件
+      const ExpenseManager = {
+        template: "#expense-manager-template",
+        props: {
+          participants: Array,
+          expenses: Array,
+        },
+        data() {
+          return {
+            newExpense: {
+              payer: "",
+              amount: "",
+              description: "",
+              participants: [],
+            },
+          };
+        },
+        methods: {
+          addNewExpense() {
+            if (
+              this.newExpense.payer &&
+              this.newExpense.amount > 0 &&
+              this.newExpense.description &&
+              this.newExpense.participants.length > 0
+            ) {
+              this.$emit("add-expense", { ...this.newExpense });
 
-        // 備分享文字
-        const shareText =
-          "聚會費用分攤明細\n" +
-          "=================\n\n" +
-          `總金額：${Object.values(expenses).reduce(
-            (sum, exp) => sum + exp.amount,
-            0
-          )} 元\n` +
-          `參與人數：${participants.length} 人\n\n` +
-          "點擊連結查看詳細資訊：";
+              // 重置表單
+              this.newExpense = {
+                payer: this.participants[0] || "",
+                amount: "",
+                description: "",
+                participants: [],
+              };
+            }
+          },
+          handleAmountChange(index, expense) {
+            // 發送通知以更新計算結果
+            this.$emit("notify-update", `已更新計算結果`);
+          },
+          handleParticipantChange(index, expense) {
+            // 確保付款人一定是參與者
+            if (!expense.participants.includes(expense.payer)) {
+              expense.participants.push(expense.payer);
+            } else {
+              this.$emit("notify-update", `已更新計算結果`);
+            }
+          },
+        },
+        watch: {
+          participants: {
+            immediate: true,
+            handler(newParticipants) {
+              if (newParticipants.length > 0 && !this.newExpense.payer) {
+                this.newExpense.payer = newParticipants[0];
+              }
+            },
+          },
+        },
+        computed: {
+          canAddExpense() {
+            return (
+              this.newExpense.payer &&
+              this.newExpense.amount > 0 &&
+              this.newExpense.description &&
+              this.newExpense.participants.length > 0
+            );
+          },
+        },
+      };
 
-        // 檢查是否支援 Share API
-        if (navigator.share) {
-          try {
-            await navigator.share({
-              title: "聚會費用分攤明細",
-              text: shareText,
-              url: shareUrl,
+      // 結果顯示組件
+      const ResultDisplay = {
+        template: "#result-display-template",
+        props: {
+          participants: Array,
+          expenses: Array,
+        },
+        computed: {
+          calculationResult() {
+            if (this.participants.length === 0) return "";
+
+            let result = "";
+            const totalPaid = {};
+            const shouldPay = {};
+
+            // 初始化
+            this.participants.forEach((name) => {
+              totalPaid[name] = 0;
+              shouldPay[name] = 0;
             });
-          } catch (err) {
-            if (err.name !== "AbortError") {
-              fallbackShare(shareUrl);
+
+            // 計算每筆支出
+            this.expenses.forEach((expense) => {
+              totalPaid[expense.payer] += expense.amount;
+              const perPerson = expense.amount / expense.participants.length;
+              expense.participants.forEach((participant) => {
+                shouldPay[participant] += perPerson;
+              });
+            });
+
+            // 計算總金額
+            const totalAmount = Object.values(totalPaid).reduce(
+              (a, b) => a + b,
+              0
+            );
+            result += `<p>總金額：${totalAmount} 元</p><br>`;
+
+            // 計算每個收付情況
+            const debtMatrix = {};
+            this.participants.forEach((payer) => {
+              debtMatrix[payer] = {};
+              this.participants.forEach((receiver) => {
+                debtMatrix[payer][receiver] = 0;
+              });
+            });
+
+            // 建立債務關係
+            this.expenses.forEach((expense) => {
+              const perPerson = expense.amount / expense.participants.length;
+              expense.participants.forEach((participant) => {
+                if (participant !== expense.payer) {
+                  debtMatrix[participant][expense.payer] += perPerson;
+                }
+              });
+            });
+
+            // 抵銷雙向債務
+            this.participants.forEach((person1) => {
+              this.participants.forEach((person2) => {
+                if (person1 !== person2) {
+                  const debt1to2 = debtMatrix[person1][person2];
+                  const debt2to1 = debtMatrix[person2][person1];
+
+                  if (debt1to2 > 0 && debt2to1 > 0) {
+                    const offsetAmount = Math.min(debt1to2, debt2to1);
+                    debtMatrix[person1][person2] -= offsetAmount;
+                    debtMatrix[person2][person1] -= offsetAmount;
+                  }
+                }
+              });
+            });
+
+            // 顯示每個人的支付情況
+            this.participants.forEach((person) => {
+              const paid = totalPaid[person] || 0;
+              const should = shouldPay[person] || 0;
+
+              result += `<p>${person}:</p>`;
+              result += `<p>- 已支付：${paid.toFixed(2)} 元</p>`;
+              result += `<p>- 應支付：${should.toFixed(2)} 元</p><br>`;
+            });
+
+            // 顯示轉帳建議
+            result += `<h3>轉帳建議（已互相抵銷）：</h3>`;
+            let hasTransfers = false;
+
+            this.participants.forEach((payer) => {
+              this.participants.forEach((receiver) => {
+                const amount = debtMatrix[payer][receiver];
+                if (amount > 0.01) {
+                  hasTransfers = true;
+                  result += `<p>${payer} 應該支付給 ${receiver}: ${amount.toFixed(
+                    2
+                  )} 元</p>`;
+                }
+              });
+            });
+
+            if (!hasTransfers) {
+              result += "<p>所有費用已平衡，無需轉帳。</p>";
+            }
+
+            return result;
+          },
+        },
+      };
+
+      // 主應用
+      const app = Vue.createApp({
+        components: {
+          ParticipantManager,
+          ExpenseManager,
+          ResultDisplay,
+        },
+        data() {
+          return {
+            participants: [],
+            expenses: [],
+            snackbar: {
+              show: false,
+              text: "",
+              color: "success",
+            },
+            dialog: {
+              show: false,
+              title: "",
+              text: "",
+              confirmText: "確認",
+              cancelText: "取消",
+              confirmColor: "error",
+              callback: null,
+            },
+          };
+        },
+        methods: {
+          addParticipant(name) {
+            this.participants.push(name);
+            this.showNotification(`已新增參與者：${name}`);
+          },
+          deleteParticipant(index) {
+            const participantToDelete = this.participants[index];
+            const hasExpenses = this.expenses.some(
+              (expense) =>
+                expense.payer === participantToDelete ||
+                expense.participants.includes(participantToDelete)
+            );
+
+            if (hasExpenses) {
+              this.showConfirmDialog({
+                title: "確認刪除參與者",
+                text: `${participantToDelete} 有相關的支出記錄，系統將：\n1. 刪除此人支付的支出\n2. 將此人從其他支出的參與者中移除\n\n確定要刪除嗎？`,
+                callback: () => {
+                  // 找出並通知被刪除的支出
+                  const deletedExpenses = this.expenses.filter(
+                    (expense) => expense.payer === participantToDelete
+                  );
+                  if (deletedExpenses.length > 0) {
+                    this.showNotification(
+                      `已刪除 ${participantToDelete} 支付的支出：${deletedExpenses
+                        .map((e) => e.description)
+                        .join(", ")}`,
+                      "warning"
+                    );
+                  }
+
+                  // 找出並通知被移除參與者的支出
+                  const modifiedExpenses = this.expenses.filter(
+                    (expense) =>
+                      expense.payer !== participantToDelete &&
+                      expense.participants.includes(participantToDelete)
+                  );
+                  if (modifiedExpenses.length > 0) {
+                    this.showNotification(
+                      `已將 ${participantToDelete} 從以下支出的參與者中移除：${modifiedExpenses
+                        .map((e) => e.description)
+                        .join(", ")}`,
+                      "warning"
+                    );
+                  }
+
+                  // 處理支出記錄
+                  this.expenses = this.expenses
+                    .map((expense) => {
+                      if (expense.payer === participantToDelete) {
+                        return null;
+                      }
+                      if (expense.participants.includes(participantToDelete)) {
+                        return {
+                          ...expense,
+                          participants: expense.participants.filter(
+                            (p) => p !== participantToDelete
+                          ),
+                        };
+                      }
+                      return expense;
+                    })
+                    .filter(
+                      (expense) =>
+                        expense !== null && expense.participants.length > 0
+                    );
+
+                  this.participants.splice(index, 1);
+                  this.showNotification(
+                    `已刪除參與者：${participantToDelete}`,
+                    "warning"
+                  );
+                },
+              });
+            } else {
+              this.showConfirmDialog({
+                title: "確認刪除參與者",
+                text: `確定要刪除 ${participantToDelete} 嗎？`,
+                callback: () => {
+                  this.participants.splice(index, 1);
+                  this.showNotification(
+                    `已刪除參與者：${participantToDelete}（無相關支出）`,
+                    "warning"
+                  );
+                },
+              });
+            }
+          },
+          resetParticipants() {
+            this.showConfirmDialog({
+              title: "確認重置",
+              text: "確定要清空所有參與者嗎？這個動作會同時清空所有支出紀錄。",
+              callback: () => {
+                const participantCount = this.participants.length;
+                const expenseCount = this.expenses.length;
+                const totalAmount = this.expenses.reduce(
+                  (sum, exp) => sum + exp.amount,
+                  0
+                );
+
+                this.participants = [];
+                this.expenses = [];
+                this.showNotification(
+                  `已重置所有資料（參與者：${participantCount} 人，支出：${expenseCount} 筆，總金額：${totalAmount} 元）`,
+                  "warning"
+                );
+              },
+            });
+          },
+          addExpense(expense) {
+            this.expenses.push(expense);
+            this.showNotification(
+              `已新增支出：${expense.description} (${
+                expense.amount
+              } 元)\n參與者：${expense.participants.join(", ")}`
+            );
+          },
+          deleteExpense(index) {
+            const expense = this.expenses[index];
+            this.showConfirmDialog({
+              title: "確認刪除支出",
+              text: `確定要刪除支出 "${expense.description}" 嗎？`,
+              callback: () => {
+                this.expenses.splice(index, 1);
+                this.showNotification(
+                  `已刪除支出：${expense.description}`,
+                  "warning"
+                );
+              },
+            });
+          },
+          resetExpenses() {
+            this.showConfirmDialog({
+              title: "確認重置",
+              text: "確定要清空所有支出紀錄嗎？",
+              callback: () => {
+                const count = this.expenses.length;
+                const total = this.expenses.reduce(
+                  (sum, exp) => sum + exp.amount,
+                  0
+                );
+                this.expenses = [];
+                this.showNotification(
+                  `已清空所有支出記錄（共 ${count} 筆，總金額 ${total} 元）`,
+                  "warning"
+                );
+              },
+            });
+          },
+          async shareDetails() {
+            const encoded = this.encodeData();
+            const shareUrl = `${window.location.origin}${window.location.pathname}#${encoded}`;
+
+            const shareText =
+              "聚會費用分攤明細\n" +
+              "=================\n\n" +
+              `總金額：${this.expenses.reduce(
+                (sum, exp) => sum + exp.amount,
+                0
+              )} 元\n` +
+              `參人數：${this.participants.length} 人\n\n` +
+              "點擊連結查看詳細資訊：";
+
+            if (navigator.share) {
+              try {
+                await navigator.share({
+                  title: "聚會費用分攤明細",
+                  text: shareText,
+                  url: shareUrl,
+                });
+              } catch (err) {
+                if (err.name !== "AbortError") {
+                  this.fallbackShare(shareUrl);
+                }
+              }
+            } else {
+              this.fallbackShare(shareUrl);
+            }
+          },
+          fallbackShare(shareUrl) {
+            navigator.clipboard
+              .writeText(shareUrl)
+              .then(() =>
+                this.showNotification("分享連結已複製到剪貼簿！", "success")
+              )
+              .catch(() => {
+                const tempInput = document.createElement("input");
+                tempInput.value = shareUrl;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand("copy");
+                document.body.removeChild(tempInput);
+                this.showNotification("分享連結已複製到剪貼簿！", "success");
+              });
+          },
+          encodeData() {
+            const data = {
+              participants: this.participants,
+              expenses: this.expenses,
+            };
+            return btoa(encodeURIComponent(JSON.stringify(data)));
+          },
+          exportDetails() {
+            let exportText = "聚會費用分攤明細\n";
+            exportText += "=================\n\n";
+
+            const shareUrl = `${window.location.origin}${
+              window.location.pathname
+            }#${this.encodeData()}`;
+            exportText += "分享連結：\n";
+            exportText += shareUrl + "\n\n";
+
+            // 加入參與者列表
+            exportText += "參與者：\n";
+            this.participants.forEach((name) => {
+              exportText += `- ${name}\n`;
+            });
+            exportText += "\n";
+
+            // 加入支出列表
+            exportText += "支出列表：\n";
+            this.expenses.forEach((expense, index) => {
+              exportText += `${index + 1}. ${expense.description}\n`;
+              exportText += `   付款人：${expense.payer}\n`;
+              exportText += `   金額：${expense.amount} 元\n`;
+              exportText += `   參與者：${expense.participants.join(", ")}\n\n`;
+            });
+
+            // 加入計算結果
+            const totalAmount = this.expenses.reduce(
+              (sum, exp) => sum + exp.amount,
+              0
+            );
+            exportText += `總金額：${totalAmount} 元\n\n`;
+
+            navigator.clipboard
+              .writeText(exportText)
+              .then(() => {
+                this.showNotification("明細已複製到剪貼簿！", "success");
+              })
+              .catch((err) => {
+                console.error("複製失：", err);
+                this.showNotification("複製失敗，請稍後再試", "error");
+              });
+          },
+          showNotification(text, color = "success") {
+            this.snackbar.text = text;
+            this.snackbar.color = color;
+            this.snackbar.show = true;
+          },
+          showConfirmDialog({
+            title,
+            text,
+            confirmText = "確認",
+            cancelText = "取消",
+            confirmColor = "error",
+            callback,
+          }) {
+            this.dialog = {
+              show: true,
+              title,
+              text,
+              confirmText,
+              cancelText,
+              confirmColor,
+              callback,
+            };
+          },
+          handleDialogConfirm() {
+            this.dialog.show = false;
+            if (this.dialog.callback) {
+              this.dialog.callback();
+            }
+          },
+          updateExpense(index, expense) {
+            console.log("index", index);
+            console.log("expense", expense);
+            this.showNotification("已更新支出");
+          },
+        },
+        mounted() {
+          // 從 URL 載入資料
+          const hash = window.location.hash.slice(1);
+          if (hash) {
+            try {
+              const data = JSON.parse(decodeURIComponent(atob(hash)));
+              if (data && data.participants && data.expenses) {
+                this.participants = data.participants;
+                this.expenses = data.expenses;
+              }
+            } catch (error) {
+              console.error("載入資料時發生錯誤：", error);
             }
           }
-        } else {
-          fallbackShare(shareUrl);
-        }
-      }
+        },
+      });
 
-      // 新增備用分享方法
-      function fallbackShare(shareUrl) {
-        // 建立臨時輸入框
-        const tempInput = document.createElement("input");
-        tempInput.value = shareUrl;
-        document.body.appendChild(tempInput);
-
-        // 選取並複製
-        tempInput.select();
-        document.execCommand("copy");
-        document.body.removeChild(tempInput);
-
-        alert("分享連結已複製到剪貼簿！\n您可以直接分享給其他人。");
-      }
-
-      // 修改 generateShareLink 函數名稱為 getShareUrl（作為輔助函數）
-      function getShareUrl() {
-        const encoded = encodeData();
-        return `${window.location.origin}${window.location.pathname}#${encoded}`;
-      }
-
-      // 修改 exportDetails 函數中的分享連結部分
-      function exportDetails() {
-        let exportText = "聚會費用分攤明細\n";
-        exportText += "=================\n\n";
-
-        // 加入分享連結
-        const shareUrl = getShareUrl();
-        exportText += "分享連結：\n";
-        exportText += shareUrl + "\n\n";
-
-        // 新增參與者清單
-        exportText += "參與者：\n";
-        participants.forEach((name) => {
-          exportText += `- ${name}\n`;
-        });
-        exportText += "\n";
-
-        // 新增支出明細
-        exportText += "支出明細：\n";
-        expenses.forEach((expense, index) => {
-          exportText += `${index + 1}. ${expense.description}\n`;
-          exportText += `   付款人：${expense.payer}\n`;
-          exportText += `   金額：${expense.amount} 元\n`;
-          exportText += `   參與者：${expense.participants.join(", ")}\n`;
-          exportText += "\n";
-        });
-
-        // 計算總金額和每人支付情況
-        const totalPaid = {};
-        const shouldPay = {};
-        participants.forEach((name) => {
-          totalPaid[name] = 0;
-          shouldPay[name] = 0;
-        });
-
-        // 新增總結算明細
-        exportText += "結算明細：\n";
-        exportText += `總金額：${Object.values(totalPaid).reduce(
-          (sum, exp) => sum + exp.amount,
-          0
-        )} 元\n\n`;
-
-        participants.forEach((person) => {
-          const paid = totalPaid[person] || 0;
-          const should = shouldPay[person] || 0;
-          exportText += `${person}:\n`;
-          exportText += `- 已支付：${paid.toFixed(2)} 元\n`;
-          exportText += `- 應支付：${should.toFixed(2)} 元\n\n`;
-        });
-
-        // 新增轉帳建議
-        exportText += "轉帳建議（已互相抵銷）：\n";
-        let hasTransfers = false;
-
-        // 建立債務矩陣
-        const debtMatrix = {};
-        participants.forEach((payer) => {
-          debtMatrix[payer] = {};
-          participants.forEach((receiver) => {
-            debtMatrix[payer][receiver] = 0;
-          });
-        });
-
-        // 計算債務關係
-        expenses.forEach((expense) => {
-          const perPerson = expense.amount / expense.participants.length;
-          expense.participants.forEach((participant) => {
-            if (participant !== expense.payer) {
-              debtMatrix[participant][expense.payer] += perPerson;
-            }
-          });
-        });
-
-        // 抵銷雙向債務
-        participants.forEach((person1) => {
-          participants.forEach((person2) => {
-            if (person1 !== person2) {
-              const debt1to2 = debtMatrix[person1][person2];
-              const debt2to1 = debtMatrix[person2][person1];
-
-              if (debt1to2 > 0 && debt2to1 > 0) {
-                const offsetAmount = Math.min(debt1to2, debt2to1);
-                debtMatrix[person1][person2] -= offsetAmount;
-                debtMatrix[person2][person1] -= offsetAmount;
-              }
-            }
-          });
-        });
-
-        // 加入轉帳建議
-        participants.forEach((payer) => {
-          participants.forEach((receiver) => {
-            const amount = debtMatrix[payer][receiver];
-            if (amount > 0.01) {
-              hasTransfers = true;
-              exportText += `${payer} 應該支付給 ${receiver}: ${amount.toFixed(
-                2
-              )} 元\n`;
-            }
-          });
-        });
-
-        if (!hasTransfers) {
-          exportText += "所有費用已平衡，無需轉帳。\n";
-        }
-
-        // 複製到剪貼簿
-        navigator.clipboard
-          .writeText(exportText)
-          .then(() => {
-            alert("明細已複製到剪貼簿！");
-          })
-          .catch((err) => {
-            console.error("複製失敗：", err);
-            alert("複製失敗，請手動複製：\n\n" + exportText);
-          });
-      }
-
-      // 新增刪除支出的函數
-      function deleteExpense(index) {
-        if (confirm("確定要刪除這筆支出嗎？")) {
-          expenses.splice(index, 1);
-          updateExpenseList();
-          calculate();
-        }
-      }
-
-      // 在頁面載入時檢查 URL 參數
-      window.addEventListener("load", loadFromUrl);
-      // 監聽 hash 變更事件
-      window.addEventListener("hashchange", loadFromUrl);
+      // 正確的初始化順序
+      const vuetify = Vuetify.createVuetify(); // 先創建 Vuetify 實例
+      app.use(vuetify); // 然後使用它
+      app.mount("#app"); // 最後掛載應用
     </script>
+
+    <!-- 新增樣式 -->
+    <style>
+      .d-inline-block {
+        display: inline-block !important;
+      }
+      .white-space-pre-line {
+        white-space: pre-line;
+      }
+    </style>
   </body>
 </html>
