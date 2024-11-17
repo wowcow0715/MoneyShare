@@ -337,7 +337,7 @@
       function calculate() {
         if (participants.length === 0) return;
 
-        // 計算每個人的總支出和��付金額
+        // 計算每個人的總支出和應付金額
         const totalPaid = {};
         const shouldPay = {};
         participants.forEach((name) => {
@@ -600,7 +600,7 @@
         const encoded = encodeData();
         const shareUrl = `${window.location.origin}${window.location.pathname}#${encoded}`;
 
-        // 準備分享文字
+        // ���備分享文字
         const shareText =
           "聚會費用分攤明細\n" +
           "=================\n\n" +
@@ -685,19 +685,12 @@
           shouldPay[name] = 0;
         });
 
-        expenses.forEach((expense) => {
-          totalPaid[expense.payer] += expense.amount;
-          const perPerson = expense.amount / expense.participants.length;
-          expense.participants.forEach((participant) => {
-            shouldPay[participant] += perPerson;
-          });
-        });
-
-        const totalAmount = Object.values(totalPaid).reduce((a, b) => a + b, 0);
-
         // 新增總結算明細
         exportText += "結算明細：\n";
-        exportText += `總金額：${totalAmount} 元\n\n`;
+        exportText += `總金額：${Object.values(totalPaid).reduce(
+          (sum, exp) => sum + exp.amount,
+          0
+        )} 元\n\n`;
 
         participants.forEach((person) => {
           const paid = totalPaid[person] || 0;
