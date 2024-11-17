@@ -22,6 +22,14 @@
       [v-cloak] {
         display: none;
       }
+      .selected-chip {
+        background-color: #4caf50 !important; /* 綠色背景 */
+        color: white !important; /* 白色字體 */
+      }
+      .unselected-chip {
+        background-color: #e0e0e0 !important; /* 灰色背景 */
+        color: black !important; /* 黑色字體 */
+      }
     </style>
   </head>
   <body>
@@ -106,14 +114,24 @@
     <!-- 參與者管理組件模板 -->
     <script type="text/x-template" id="participant-manager-template">
       <v-card class="mb-6">
-        <v-card-title>新增參與者</v-card-title>
+        <v-card-title class="d-flex justify-space-between align-center">
+          誰有來
+          <v-btn
+            color="error"
+            variant="text"
+            @click="$emit('reset-participants')"
+            :disabled="!participants.length"
+          >
+            重置所有參與者
+          </v-btn>
+        </v-card-title>
         <v-card-text>
           <v-form @submit.prevent="addNewParticipant">
             <v-row>
               <v-col cols="12" sm="8">
                 <v-text-field
                   v-model="newParticipantName"
-                  label="輸入參與者姓名"
+                  label="輸入誰有來"
                   @keyup.enter="addNewParticipant"
                   hide-details
                 ></v-text-field>
@@ -125,45 +143,26 @@
                   @click="addNewParticipant"
                   :disabled="!newParticipantName"
                 >
-                  新增參與者
+                  他來了
                 </v-btn>
               </v-col>
             </v-row>
           </v-form>
-        </v-card-text>
-      </v-card>
-
-      <v-card class="mb-6">
-        <v-card-title class="d-flex justify-space-between align-center">
-          目前參與者
-          <v-btn
-            color="error"
-            variant="text"
-            @click="$emit('reset-participants')"
-            :disabled="!participants.length"
-          >
-            重置所有參與者
-          </v-btn>
-        </v-card-title>
-        <v-card-text>
-          <v-list v-if="participants.length">
-            <v-list-item
-              v-for="(participant, index) in participants"
-              :key="participant"
-            >
-              <v-list-item-title>{{ participant }}</v-list-item-title>
-              <template #append>
-                <v-btn
-                  color="error"
-                  icon="mdi-delete"
-                  variant="text"
-                  @click="$emit('delete-participant', index)"
-                ></v-btn>
-              </template>
-            </v-list-item>
-          </v-list>
+          <v-row class="mt-4">
+            <v-col cols="12">
+              <v-chip
+                v-for="(participant, index) in participants"
+                :key="participant"
+                @click="$emit('delete-participant', index)"
+                class="ma-2"
+              >
+                {{ participant }}
+                <v-icon right color="red" class="ml-1">mdi-delete</v-icon>
+              </v-chip>
+            </v-col>
+          </v-row>
           <v-alert
-            v-else
+            v-if="!participants.length"
             type="info"
             text="尚未新增參與者"
           ></v-alert>
@@ -174,14 +173,14 @@
     <!-- 支出管理組件模板 -->
     <script type="text/x-template" id="expense-manager-template">
       <v-card class="mb-6">
-        <v-card-title>新增支出</v-card-title>
+        <v-card-title>誰花的錢  出來</v-card-title>
         <v-card-text>
           <v-row>
             <v-col cols="12" sm="4">
               <v-select
                 v-model="newExpense.payer"
                 :items="participants"
-                label="付款人"
+                label="大善人"
                 hide-details
               ></v-select>
             </v-col>
@@ -196,24 +195,25 @@
             <v-col cols="12" sm="4">
               <v-text-field
                 v-model="newExpense.description"
-                label="支出描述"
+                label="你幹啥去了花那麼多錢"
                 hide-details
               ></v-text-field>
             </v-col>
           </v-row>
 
-          <v-card-subtitle>參與者</v-card-subtitle>
+          <v-card-subtitle>誰有來</v-card-subtitle>
           <v-row>
             <v-col cols="12">
-              <v-checkbox
+              <v-chip
                 v-for="participant in participants"
                 :key="participant"
-                v-model="newExpense.participants"
-                :label="participant"
-                :value="participant"
-                hide-details
+                :class="newExpense.participants.includes(participant) ? 'selected-chip' : 'unselected-chip'"
+                @click="toggleParticipant(participant)"
                 class="ma-2"
-              ></v-checkbox>
+                outlined
+              >
+                {{ participant }}
+              </v-chip>
             </v-col>
           </v-row>
 
@@ -225,7 +225,7 @@
                 @click="addNewExpense"
                 :disabled="!canAddExpense"
               >
-                新增支出
+                新增
               </v-btn>
             </v-col>
           </v-row>
@@ -250,7 +250,26 @@
               v-for="(expense, index) in expenses"
               :key="index"
             >
-              <v-list-item-title>{{ expense.description }}</v-list-item-title>
+              <v-list-item-title>{{ expense.description }}
+                <div class="mt-2">
+                <span class="text-subtitle-2">參與者：</span>
+                <v-row>
+
+                    <v-chip
+                      v-for="participant in participants"
+                      :key="participant"
+                      :class="expense.participants.includes(participant) ? 'selected-chip' : 'unselected-chip'"
+                      @click="toggleExpenseParticipant(index, participant)"
+                      class="ma-3"
+                    >
+                      <v-icon v-if="participant === expense.payer" color="red" class="mr-1">
+                        mdi-crown
+                      </v-icon>
+                      {{ participant }}
+                    </v-chip>
+
+                </v-row>
+              </div></v-list-item-title>
               <v-list-item-subtitle>
                 <div class="d-flex align-center">
                   <span>{{ expense.payer }} 支付了</span>
@@ -265,27 +284,7 @@
                   ></v-text-field>
                   <span>元</span>
                 </div>
-                <div class="mt-2">
-                  <span class="text-subtitle-2">參與者：</span>
-                  <v-checkbox
-                    v-for="participant in participants"
-                    :key="participant"
-                    v-model="expense.participants"
-                    :label="participant"
-                    :value="participant"
-                    density="compact"
-                    hide-details
-                    class="ma-1 d-inline-block"
-                    @change="handleParticipantChange(index, expense)"
-                  >
-                    <template v-slot:label>
-                      <v-icon v-if="participant === expense.payer" color="red" class="mr-1">
-                        mdi-crown
-                      </v-icon>
-                      {{ participant }}
-                    </template>
-                  </v-checkbox>
-                </div>
+
               </v-list-item-subtitle>
               <template #append>
                 <v-btn
@@ -331,7 +330,7 @@
                   @click="$emit('share')"
                   prepend-icon="mdi-share-variant"
                 >
-                  分享結果
+                  轉傳網址
                 </v-btn>
               </v-col>
             </v-row>
@@ -438,8 +437,26 @@
               };
             }
           },
+          toggleParticipant(participant) {
+            const index = this.newExpense.participants.indexOf(participant);
+            if (index === -1) {
+              this.newExpense.participants.push(participant);
+            } else {
+              this.newExpense.participants.splice(index, 1);
+            }
+          },
+          toggleExpenseParticipant(expenseIndex, participant) {
+            const expense = this.expenses[expenseIndex];
+            const index = expense.participants.indexOf(participant);
+            if (index === -1) {
+              expense.participants.push(participant);
+            } else {
+              expense.participants.splice(index, 1);
+            }
+            this.handleParticipantChange(expenseIndex, expense);
+          },
           handleAmountChange(index, expense) {
-            // 發送通知以更新計算結果
+            // 發送通知以新計算結果
             this.$emit("notify-update", `已更新計算結果`);
           },
           handleParticipantChange(index, expense) {
@@ -610,27 +627,33 @@
         methods: {
           encodeData() {
             const data = {
-              participants: this.participants,
-              expenses: this.expenses,
+              p: this.participants,
+              e: this.expenses.map((expense) => ({
+                p: expense.payer,
+                a: expense.amount,
+                d: expense.description,
+                ps: expense.participants,
+              })),
             };
-            // 1. JSON 字串化
             const jsonString = JSON.stringify(data);
-            // 2. Base64 編碼
             const base64String = btoa(jsonString);
-            // 3. 使用 pako 壓縮
             const compressed = pako.deflate(base64String);
-            // 4. 使用 Base62 編碼
             return base62Encode(compressed);
           },
           decodeData(encoded) {
-            // 1. Base62 解碼
             const compressed = base62Decode(encoded);
-            // 2. 解壓縮 pako
             const base64String = pako.inflate(compressed, { to: "string" });
-            // 3. Base64 解碼
             const jsonString = atob(base64String);
-            // 4. 解析 JSON
-            return JSON.parse(jsonString);
+            const data = JSON.parse(jsonString);
+            return {
+              participants: data.p,
+              expenses: data.e.map((expense) => ({
+                payer: expense.p,
+                amount: expense.a,
+                description: expense.d,
+                participants: expense.ps,
+              })),
+            };
           },
           async shareDetails() {
             const encoded = this.encodeData();
@@ -680,7 +703,7 @@
           },
           addParticipant(name) {
             this.participants.push(name);
-            this.showNotification(`已新增參與者：${name}`);
+            this.showNotification(`${name} 來了來了`);
           },
           deleteParticipant(index) {
             const participantToDelete = this.participants[index];
@@ -693,7 +716,7 @@
             if (hasExpenses) {
               this.showConfirmDialog({
                 title: "確認刪除參與者",
-                text: `${participantToDelete} 有相關的支出記錄，系統將：\n1. 刪除此人支付的支出\n2. 將此人從其他支出的參與者中移除\n\n確定要刪除嗎？`,
+                text: `${participantToDelete} 有相關的支出記錄，系統將：\n1. 刪除人支付的支出\n2. 將此人從其他支出的參與者中移除\n\n確定要刪除嗎？`,
                 callback: () => {
                   // 找出並通知被刪除的支出
                   const deletedExpenses = this.expenses.filter(
@@ -746,7 +769,7 @@
 
                   this.participants.splice(index, 1);
                   this.showNotification(
-                    `已刪除參與者：${participantToDelete}`,
+                    `他沒來：${participantToDelete}`,
                     "warning"
                   );
                 },
@@ -827,17 +850,17 @@
             });
           },
           exportDetails() {
-            let exportText = "會���用分攤明細\n";
+            let exportText = "一次看清楚\n";
             exportText += "=================\n\n";
 
             const shareUrl = `${window.location.origin}${
               window.location.pathname
             }#${this.encodeData()}`;
-            exportText += "分享連結：\n";
+            exportText += "內容網址：\n";
             exportText += shareUrl + "\n\n";
 
             // 加入參與者列表
-            exportText += "參與者：\n";
+            exportText += "誰有來：\n";
             this.participants.forEach((name) => {
               exportText += `- ${name}\n`;
             });
@@ -849,7 +872,7 @@
               exportText += `${index + 1}. ${expense.description}\n`;
               exportText += `   付款人：${expense.payer}\n`;
               exportText += `   金額：${expense.amount} 元\n`;
-              exportText += `   參與者：${expense.participants.join(", ")}\n\n`;
+              exportText += `   他有來：${expense.participants.join(", ")}\n\n`;
             });
 
             // 加入計算結果
@@ -858,6 +881,57 @@
               0
             );
             exportText += `總金額：${totalAmount} 元\n\n`;
+
+            // 計算轉帳建議
+            exportText += "轉帳建議：\n";
+            const debtMatrix = {};
+            this.participants.forEach((payer) => {
+              debtMatrix[payer] = {};
+              this.participants.forEach((receiver) => {
+                debtMatrix[payer][receiver] = 0;
+              });
+            });
+
+            this.expenses.forEach((expense) => {
+              const perPerson = expense.amount / expense.participants.length;
+              expense.participants.forEach((participant) => {
+                if (participant !== expense.payer) {
+                  debtMatrix[participant][expense.payer] += perPerson;
+                }
+              });
+            });
+
+            this.participants.forEach((person1) => {
+              this.participants.forEach((person2) => {
+                if (person1 !== person2) {
+                  const debt1to2 = debtMatrix[person1][person2];
+                  const debt2to1 = debtMatrix[person2][person1];
+
+                  if (debt1to2 > 0 && debt2to1 > 0) {
+                    const offsetAmount = Math.min(debt1to2, debt2to1);
+                    debtMatrix[person1][person2] -= offsetAmount;
+                    debtMatrix[person2][person1] -= offsetAmount;
+                  }
+                }
+              });
+            });
+
+            let hasTransfers = false;
+            this.participants.forEach((payer) => {
+              this.participants.forEach((receiver) => {
+                const amount = debtMatrix[payer][receiver];
+                if (amount > 0.01) {
+                  hasTransfers = true;
+                  exportText += `${payer} 應該支付給 ${receiver}: ${amount.toFixed(
+                    2
+                  )} 元\n`;
+                }
+              });
+            });
+
+            if (!hasTransfers) {
+              exportText += "所有費用已平衡，無需轉帳。\n";
+            }
 
             navigator.clipboard
               .writeText(exportText)
@@ -934,6 +1008,14 @@
       }
       .white-space-pre-line {
         white-space: pre-line;
+      }
+      .checkbox-container {
+        max-height: 300px; /* 設置最大高度 */
+        overflow-y: auto; /* 添加垂直滾動條 */
+      }
+      .expense-participants {
+        max-height: 150px; /* 設置支出列表中參與者的最大高度 */
+        overflow-y: auto; /* 添加垂直滾動條 */
       }
     </style>
   </body>
