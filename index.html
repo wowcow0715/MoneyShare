@@ -509,25 +509,50 @@
         }
       }
 
-      // 新增重置參與者的函數
+      // 修改重置參與者的函數
       function resetParticipants() {
         if (
           confirm("確定要清空所有參與者嗎？這個動作會同時清空所有支出紀錄。")
         ) {
           participants = [];
           expenses = []; // 清空支出，因為支出需要參與者資訊
+
+          // 清空所有顯示
           updateParticipantList();
           updatePayerSelect();
           updateExpenseList();
+
+          // 清空結果顯示
+          const result = document.getElementById("result");
+          result.innerHTML = "";
+
+          // 清空輸入欄位
+          document.getElementById("newParticipant").value = "";
+          document.getElementById("amount").value = "";
+          document.getElementById("description").value = "";
+
+          // 更新計算結果
           calculate();
         }
       }
 
-      // 新增重置支出的函數
+      // 修改重置支���的函數
       function resetExpenses() {
         if (confirm("確定要清空所有支出紀錄嗎？")) {
           expenses = [];
+
+          // 清空支出列表
           updateExpenseList();
+
+          // 清空結果顯示
+          const result = document.getElementById("result");
+          result.innerHTML = "";
+
+          // 清空支出相關的輸入欄位
+          document.getElementById("amount").value = "";
+          document.getElementById("description").value = "";
+
+          // 更新計算結果
           calculate();
         }
       }
@@ -600,7 +625,7 @@
         const encoded = encodeData();
         const shareUrl = `${window.location.origin}${window.location.pathname}#${encoded}`;
 
-        // ���備分享文字
+        // 備分享文字
         const shareText =
           "聚會費用分攤明細\n" +
           "=================\n\n" +
